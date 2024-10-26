@@ -1,0 +1,9 @@
+[package]
+name = "discord-ticket-bot"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.40.0", features = ["full"] }
+#serenity = {default-features = false, features = ["client", "gateway", "model", "rustls_backend"], version = "0.9.0-rc.1"}
+serenity = { version = "0.12", features = ["full"]}
