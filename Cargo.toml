@@ -1,9 +1,14 @@
 [package]
 name = "discord-ticket-bot"
-version = "0.1.0"
+version = "0.8.0"
+authors = ["EikoAkiba", "eikoakiba@proton.me"]
+description = "Ticket Manager Bot for Discord"
 edition = "2021"
 
 [dependencies]
 tokio = { version = "1.40.0", features = ["full"] }
 #serenity = {default-features = false, features = ["client", "gateway", "model", "rustls_backend"], version = "0.9.0-rc.1"}
 serenity = { version = "0.12", features = ["full"]}
+dotenv = "0.15"
+log = "0.4"
+chrono = { version = "0.4.38", features = ["now"] }
