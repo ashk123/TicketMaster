@@ -1,3 +1,6 @@
+use std::any::Any;
+use std::env::temp_dir;
+
 use serenity::all::PermissionOverwrite;
 use serenity::builder::{CreateChannel, CreateCommand};
 use serenity::client::Context;
@@ -6,6 +9,10 @@ use serenity::model::application::{
 };
 use serenity::model::channel::PermissionOverwriteType;
 use serenity::model::permissions::Permissions;
+
+use std::sync::Mutex;
+
+use crate::TempChannels;
 
 pub async fn run(
     options: &[ResolvedOption<'_>],
@@ -52,7 +59,10 @@ pub async fn run(
         .create_channel(&ctx.http, channel.clone())
         .await
         .unwrap();
-
+    TempChannels
+        .lock()
+        .unwrap()
+        .add_temp_channel(created_channel_sample.id);
     return String::from("Created Channel with for you");
 }
 

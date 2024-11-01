@@ -7,18 +7,17 @@ Repository: github.com/ashk123/TicketMaster
 Twitter: EikoAkiba__
 =======================================
 */
-
 mod commands;
 
-use std::{collections::HashMap, env};
+use std::env;
 
 use dotenv::dotenv;
 use log::{info, trace};
 
 use chrono;
-
+use lazy_static::lazy_static; // 1.4.0
+use serenity::all::ChannelId;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
-
 use serenity::{
     all::{Channel, ChannelType, PermissionOverwrite, PrivateChannel},
     async_trait,
@@ -26,12 +25,17 @@ use serenity::{
     model::{channel::Message, gateway::Ready, guild::Guild},
     prelude::*,
 };
+use std::sync::Mutex;
 
 use serenity::model::application::{Command, Interaction};
 
-use serenity::model::channel::PermissionOverwriteType;
+use serenity::model::channel::{self, PermissionOverwriteType};
 use serenity::model::id::UserId;
 use serenity::model::permissions::Permissions;
+
+lazy_static! {
+    static ref TempChannels: Mutex<Cfg> = Mutex::new(Cfg::default());
+}
 
 const HELP_MESSAGE: &str = "
 }ello there, Human!
@@ -61,59 +65,41 @@ enum LogKindModel {
     Error,
 }
 
+#[derive(Default)]
 struct Cfg {
-    main_guild_channel: String,
-    name: String,
-    first_channel_msg: String,
+    main_guild_channel: ChannelId,
+    temp_channels: Vec<ChannelId>,
 }
 
 impl Cfg {
-    fn new(main_guild_channel: String, name: String, first_channel_msg: String) -> Self {
+    fn new(main_guild_channel: ChannelId) -> Self {
         Self {
             main_guild_channel,
-            name,
-            first_channel_msg,
+            temp_channels: vec![],
         }
     }
-
-    fn set_main_channel(&mut self, data: &str) {
-        self.main_guild_channel = String::from(data);
+    // TODO: Check the input (created_ticket_channel)
+    fn add_temp_channel(&mut self, created_ticket_channel: ChannelId) {
+        self.temp_channels.push(created_ticket_channel);
     }
 
-    fn get_guild_id(&self) -> &String {
-        &self.main_guild_channel
+    fn IsAvailable(&self, cha: ChannelId) -> bool {
+        self.temp_channels.contains(&cha)
     }
 
-    fn get_name(&self) -> &String {
-        &self.name
+    fn set_main_channel(&mut self, data: ChannelId) {
+        self.main_guild_channel = data;
     }
 
-    fn get_first_msg(&self) -> &String {
-        &self.first_channel_msg
+    fn get_main_channel(&self) -> ChannelId {
+        self.main_guild_channel
     }
 }
 
 struct Handler;
 
 impl Handler {
-    async fn HandleUserMessage(&self, ctx: Context, msg: &Message, cmd: &str, mut cfg: Cfg) {
-        if cmd == "help" {
-            if let Err(why) = msg.channel_id.say(&ctx.http, cmd).await {
-                println!("Error sending message: {:?}", why);
-            }
-        }
-
-        if cmd == "new" {}
-
-        if cmd == "conf" {
-            let args: Vec<&str> = msg.content.split(' ').collect();
-            let conf_channel = args[0];
-
-            // Validate the right string
-
-            cfg.set_main_channel(conf_channel);
-        }
-    }
+    // }    cfg.set_main_channel(conf_channel);
 
     async fn SendMessage(&self, ctx: &Context, msg: &Message, resp: String) {
         if let Err(why) = msg.channel_id.say(&ctx.http, resp).await {
@@ -127,11 +113,13 @@ impl EventHandler for Handler {
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
         if let Interaction::Command(command) = interaction {
             println!("Received command interaction: {command:#?}");
-            let content = match command.data.name.as_str() {
+            let content: Option<String> = match command.data.name.as_str() {
                 "info" => Some(commands::info::run(&command.data.options())),
                 "new" => Some(commands::new::run(&command.data.options(), &ctx, &command).await),
                 "list" => Some(commands::info::run(&command.data.options())),
-                "close" => Some(commands::info::run(&command.data.options())),
+                "close" => {
+                    Some(commands::close::run(&command.data.options(), &ctx, &command).await)
+                }
                 _ => Some("not implemented :(".to_string()),
             };
 
@@ -144,31 +132,13 @@ impl EventHandler for Handler {
             }
         }
     }
-    async fn message(&self, ctx: Context, msg: Message) {
-        //println!(
-        //    "Coming Message from user {} with value of {}",
-        //    msg.author.name, &msg.content
-        //);
-        //println!("{:?}", msg);
-        let msg_st: Option<char> = msg.content.chars().nth(0);
-        if msg_st.is_some() && msg_st.unwrap() == '!' {
-            let actual_cmd: String = msg.content.chars().skip(1).collect();
-            self.HandleUserMessage(
-                ctx,
-                &msg,
-                &actual_cmd,
-                Cfg::new(
-                    String::from("300"),
-                    String::from("ASD"),
-                    String::from("ASD"),
-                ),
-            )
-            .await;
-        }
-    }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        // 1234: example user guild's id
+        TempChannels
+            .lock()
+            .unwrap()
+            .set_main_channel(ChannelId::new(0)); // Temp code block
+                                                  // 1234: example user guild's id
         let guild_id_sample: Vec<serenity::model::guild::UnavailableGuild> = ready.guilds;
 
         for i in guild_id_sample {
@@ -176,7 +146,11 @@ impl EventHandler for Handler {
             let _ = guild
                 .set_commands(
                     &ctx.http,
-                    vec![commands::info::register(), commands::new::register()],
+                    vec![
+                        commands::info::register(),
+                        commands::new::register(),
+                        commands::close::register(),
+                    ],
                 )
                 .await;
         }
