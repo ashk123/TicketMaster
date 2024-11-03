@@ -3,40 +3,35 @@
 Project: TicketMaster
 Author: EikoAkiba
 Email: eikoakiba@proton.me
-Repository: github.com/ashk123/TicketMaster
+Repository: https://github.com/ashk123/TicketMaster
 Twitter: EikoAkiba__
 =======================================
 */
+
 mod commands;
 
 use std::env;
 
 use dotenv::dotenv;
-use log::{info, trace};
 
 use chrono;
 use lazy_static::lazy_static; // 1.4.0
 use serenity::all::ChannelId;
 use serenity::builder::{CreateInteractionResponse, CreateInteractionResponseMessage};
 use serenity::{
-    all::{Channel, ChannelType, PermissionOverwrite, PrivateChannel},
     async_trait,
-    builder::CreateChannel,
-    model::{channel::Message, gateway::Ready, guild::Guild},
+    model::{channel::Message, gateway::Ready},
     prelude::*,
 };
 use std::sync::Mutex;
 
-use serenity::model::application::{Command, Interaction};
-
-use serenity::model::channel::{self, PermissionOverwriteType};
-use serenity::model::id::UserId;
-use serenity::model::permissions::Permissions;
+use serenity::model::application::Interaction;
 
 lazy_static! {
     static ref TempChannels: Mutex<Cfg> = Mutex::new(Cfg::default());
 }
 
+/*
 const HELP_MESSAGE: &str = "
 }ello there, Human!
 
@@ -53,10 +48,11 @@ Join to our discord server: <LINK>
 ❓ Something wrong?
 ➡️ You can flag an admin with @admin
 
-I hope that resolves your issue 
+I hope that resolves your issue
 
 — TicketMasterBot 🤖
 ";
+*/
 
 #[derive(PartialEq)]
 enum LogKindModel {

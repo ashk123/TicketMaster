@@ -1,18 +1,11 @@
-use std::sync::Arc;
-
 use serenity::{
-    all::{Cache, ChannelId, CommandInteraction, Context, CreateCommand},
-    futures::TryFutureExt,
+    all::{ChannelId, CommandInteraction, Context, CreateCommand},
     model::application::ResolvedOption,
 };
 
 use crate::TempChannels;
 
-pub async fn run(
-    options: &[ResolvedOption<'_>],
-    ctx: &Context,
-    cmd: &CommandInteraction,
-) -> String {
+pub async fn run(_: &[ResolvedOption<'_>], ctx: &Context, cmd: &CommandInteraction) -> String {
     // Get the channel and check if it is the configed channel and if true return it
     if !TempChannels.lock().unwrap().IsAvailable(cmd.channel_id) {
         return String::from("Please use this command from created ticket channel");
